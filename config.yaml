@@ -1,0 +1,31 @@
+force_gauge:
+  port: COM6
+  baudrate: 115200
+  default_unit: N
+
+picomotor:
+  bridge_exe: external/newfocus/PicomotorBridge.exe
+  axis: 1
+
+test_mode: static   # static or dynamic
+
+static_test:
+  step_size: 10
+  n_steps: 5
+  settle_time_s: 0.5
+  force_timeout_s: 2.0
+  use_timestamp_output: true
+  output_file: data/raw/static_wire_test.csv
+
+dynamic_test:
+  total_steps: 500
+  sampling_interval_s: 0.05
+  force_timeout_s: 0.2
+  use_timestamp_output: true
+  output_file: data/raw/dynamic_wire_test.csv
+
+safety:
+  max_step_size: 100
+  max_total_steps: 1000
+  allowed_direction: both
+  dry_run: false
