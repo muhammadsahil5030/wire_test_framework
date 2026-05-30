@@ -160,7 +160,7 @@ Before running a real test:
 Run all commands from the main framework folder:
 
 ```powershell
-cd E:\Education\PhD\Wire_test\Analysis_codes\serial_connection\wire_test_framework
+cd E:\path\to\framework\wire_test_framework
 ```
 
 ### 5.1 List available serial ports
