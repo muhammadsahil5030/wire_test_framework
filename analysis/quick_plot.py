@@ -1,5 +1,12 @@
 # analysis/quick_plot.py
 # Quick plotting tools for wire-test output CSV files.
+#
+# Supports:
+#   1. Dynamic test CSV:
+#        time_s, force_N
+#
+#   2. Static test CSV:
+#        step_index, time_s, max_tension_N, stable_tension_N
 
 from pathlib import Path
 
@@ -24,76 +31,84 @@ def plot_wire_test_output(csv_file: str, output_dir: str = "output/plots"):
     print(df.columns.tolist())
     print()
 
-    # Convert important columns to numeric safely
-    numeric_columns = [
-        "step_index",
-        "elapsed_time_s",
-        "position_before_steps",
-        "position_after_steps",
-        "delta_position_steps",
-        "force_before",
-        "force_after",
-    ]
-
-    for col in numeric_columns:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+    # Convert all columns to numeric where possible.
+    # This keeps the plotting safe even if empty strings exist.
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # ------------------------------------------------------------
-    # Plot 1: Force after each step
+    # Case 1: Dynamic test
+    # Expected columns:
+    #   time_s, force_N
     # ------------------------------------------------------------
-    if "step_index" in df.columns and "force_after" in df.columns:
+    if "time_s" in df.columns and "force_N" in df.columns:
         plt.figure(figsize=(8, 5))
-        plt.plot(df["step_index"], df["force_after"], marker="o")
-        plt.xlabel("Step index")
-        plt.ylabel("Force after move")
-        plt.title("Force after each Picomotor step")
+        plt.plot(df["time_s"], df["force_N"], marker="o")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Force [N]")
+        plt.title("Dynamic wire test: force vs time")
         plt.grid(True)
         plt.tight_layout()
 
-        out_file = output_path / "force_after_vs_step.png"
+        out_file = output_path / "dynamic_force_vs_time.png"
         plt.savefig(out_file, dpi=300)
         plt.close()
 
         print(f"Saved: {out_file.resolve()}")
 
     # ------------------------------------------------------------
-    # Plot 2: Picomotor position after each step
-    # ------------------------------------------------------------
-    if "step_index" in df.columns and "position_after_steps" in df.columns:
-        plt.figure(figsize=(8, 5))
-        plt.plot(df["step_index"], df["position_after_steps"], marker="o")
-        plt.xlabel("Step index")
-        plt.ylabel("Picomotor position [steps]")
-        plt.title("Picomotor position after each step")
-        plt.grid(True)
-        plt.tight_layout()
-
-        out_file = output_path / "position_after_vs_step.png"
-        plt.savefig(out_file, dpi=300)
-        plt.close()
-
-        print(f"Saved: {out_file.resolve()}")
-
-    # ------------------------------------------------------------
-    # Plot 3: Force before and after
+    # Case 2: Static test
+    # Expected columns:
+    #   step_index, time_s, max_tension_N, stable_tension_N
     # ------------------------------------------------------------
     if (
         "step_index" in df.columns
-        and "force_before" in df.columns
-        and "force_after" in df.columns
+        and "max_tension_N" in df.columns
+        and "stable_tension_N" in df.columns
     ):
+        # Plot max and stable tension vs step index
         plt.figure(figsize=(8, 5))
-        plt.plot(df["step_index"], df["force_before"], marker="o", label="Before move")
-        plt.plot(df["step_index"], df["force_after"], marker="s", label="After move")
+        plt.plot(
+            df["step_index"],
+            df["max_tension_N"],
+            marker="o",
+            label="Maximum tension",
+        )
+        plt.plot(
+            df["step_index"],
+            df["stable_tension_N"],
+            marker="s",
+            label="Stable tension after relaxation",
+        )
         plt.xlabel("Step index")
-        plt.ylabel("Force")
-        plt.title("Force before and after Picomotor movement")
+        plt.ylabel("Tension [N]")
+        plt.title("Static wire test: maximum and stable tension")
         plt.grid(True)
         plt.legend()
         plt.tight_layout()
 
-        out_file = output_path / "force_before_after_vs_step.png"
+        out_file = output_path / "static_tension_vs_step.png"
+        plt.savefig(out_file, dpi=300)
+        plt.close()
+
+        print(f"Saved: {out_file.resolve()}")
+
+        # Plot relaxation drop per step
+        df["relaxation_drop_N"] = df["max_tension_N"] - df["stable_tension_N"]
+
+        plt.figure(figsize=(8, 5))
+        plt.plot(
+            df["step_index"],
+            df["relaxation_drop_N"],
+            marker="o",
+        )
+        plt.xlabel("Step index")
+        plt.ylabel("Relaxation drop [N]")
+        plt.title("Static wire test: tension drop after relaxation")
+        plt.grid(True)
+        plt.tight_layout()
+
+        out_file = output_path / "static_relaxation_drop_vs_step.png"
         plt.savefig(out_file, dpi=300)
         plt.close()
 

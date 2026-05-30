@@ -18,6 +18,7 @@ import yaml
 from instruments.pce_fb_force_gauge import PCEFBForceGauge
 from instruments.picomotor_controller import PicomotorController
 from acquisition.step_test import run_step_test
+from acquisition.dynamic_test import run_dynamic_test
 from analysis.quick_plot import plot_wire_test_output
 
 # Load configuration from YAML file
@@ -66,6 +67,12 @@ def main():
         action="store_true",
         help="Run the step-test experiment.",
     )
+    parser.add_argument(
+        "--test_type",
+        choices=["static", "dynamic"],
+        default="static",
+        help="Type of test to run: static or dynamic. Default: static.",
+    )
 
     parser.add_argument(
     "--plot",
@@ -86,13 +93,16 @@ def main():
     # Extract relevant sections from the configuration
     force_cfg = cfg["force_gauge"]
     motor_cfg = cfg["picomotor"]
-    exp_cfg = cfg["experiment"]
+    
+    static_cfg = cfg.get("static_test", {})
+    dynamic_cfg = cfg.get("dynamic_test", {})
 
     # Test force gauge connection
     if args.test_force:
         force_gauge = PCEFBForceGauge(
             port=force_cfg["port"],
             baudrate=force_cfg["baudrate"],
+            timeout=force_cfg.get("timeout_s", 1.0),
         )
 
         try:
@@ -132,51 +142,87 @@ def main():
 
     # Run the step-test experiment
     if args.run:
-        # Initialize instruments
         force_gauge = PCEFBForceGauge(
             port=force_cfg["port"],
             baudrate=force_cfg["baudrate"],
+            timeout=force_cfg.get("timeout_s", 1.0),
         )
 
         picomotor = PicomotorController(
             bridge_exe=motor_cfg["bridge_exe"]
         )
 
-        # Run the experiment with proper resource management and error handling
         try:
             force_gauge.open()
 
-            # The run_step_test function will handle the experiment logic, 
-            # including moving the Picomotor and reading forces from the gauge. 
-            # It will also save the results to a CSV file as specified in the configuration.
-            run_step_test(
-                force_gauge=force_gauge,
-                picomotor=picomotor,
-                axis=motor_cfg["axis"],
-                step_size=exp_cfg["step_size"],
-                n_steps=exp_cfg["n_steps"],
-                settle_time_s=exp_cfg["settle_time_s"],
-                force_timeout_s=exp_cfg["force_timeout_s"],
-                output_file=exp_cfg["output_file"],
-            )
+            if args.test_type == "static":
+                static_cfg = cfg["static_test"]
 
-        # Handle keyboard interrupt gracefully to allow the user to stop the experiment if needed
+                run_step_test(
+                    force_gauge=force_gauge,
+                    picomotor=picomotor,
+                    axis=motor_cfg["axis"],
+                    step_size=static_cfg["step_size"],
+                    n_steps=static_cfg["n_steps"],
+                    settle_time_s=static_cfg["settle_time_s"],
+                    force_timeout_s=static_cfg["force_timeout_s"],
+                    output_file=static_cfg["output_file"],
+                    peak_measure_duration_s=static_cfg["peak_measure_duration_s"],
+                    peak_sampling_interval_s=static_cfg["peak_sampling_interval_s"],
+                )
+
+            elif args.test_type == "dynamic":
+                dynamic_cfg = cfg["dynamic_test"]
+
+                run_dynamic_test(
+                    force_gauge=force_gauge,
+                    picomotor=picomotor,
+                    axis=motor_cfg["axis"],
+                    velocity_steps_per_s=dynamic_cfg["velocity_steps_per_s"],
+                    #acceleration_steps_per_s2=dynamic_cfg.get("acceleration_steps_per_s2", None),
+                    #total_steps=dynamic_cfg["total_steps"],
+                    direction=dynamic_cfg["direction"],
+                    run_duration_s=dynamic_cfg["run_duration_s"],
+                    sampling_interval_s=dynamic_cfg["sampling_interval_s"],
+                    force_timeout_s=dynamic_cfg["force_timeout_s"],
+                    #pre_motion_duration_s=dynamic_cfg.get("pre_motion_duration_s", 1.0),
+                    max_duration_s=dynamic_cfg["max_duration_s"],
+                    output_file=dynamic_cfg["output_file"],
+                )
+
         except KeyboardInterrupt:
             print("\nExperiment interrupted by user.")
+
+            try:
+                print("Trying to stop Picomotor after interruption...")
+                picomotor.stop(motor_cfg["axis"])
+            except Exception as exc:
+                print("WARNING: Could not stop Picomotor normally.")
+                print(exc)
 
         finally:
             force_gauge.close()
 
         return
     
-    # Plot the output CSV file from the experiment
+    # Plot the output CSV file from the selected test type
     if args.plot:
+        if args.test_type == "static":
+            csv_file = static_cfg["output_file"]
+        elif args.test_type == "dynamic":
+            csv_file = dynamic_cfg["output_file"]
+        else:
+            raise ValueError(
+                f"Unknown test_type: {args.test_type}. "
+                "Allowed values are: static or dynamic."
+            )
+
         plot_wire_test_output(
-            csv_file=exp_cfg["output_file"],
+            csv_file=csv_file,
             output_dir="output/plots",
         )
         return
-    
+        
     # If no valid options were provided, print the help message
     parser.print_help()
 

@@ -1,31 +1,57 @@
+# Configuration file for the wire test framework
+# @author: Muhammad Saiel
+# date: 2024-06-01
+# This file contains the configuration parameters for the wire test framework, 
+# including settings for the force gauge, picomotor, static test, dynamic test, and safety parameters.
+
+# This block of code looking for the force gauge settings, 
+# including the port, baudrate, timeout, and default unit of measurement.
 force_gauge:
   port: COM6
   baudrate: 115200
+  timeout_s: 1.0
   default_unit: N
 
+# This block of code looking for the picomotor settings, 
+# including the path to the bridge executable and the axis to control.
 picomotor:
   bridge_exe: external/newfocus/PicomotorBridge.exe
   axis: 1
 
-test_mode: static   # static or dynamic
-
+# This block of code looking for the static test settings, 
+# including the step size, number of steps, settle time, force timeout, and output file
 static_test:
   step_size: 10
   n_steps: 5
   settle_time_s: 0.5
   force_timeout_s: 2.0
-  use_timestamp_output: true
   output_file: data/raw/static_wire_test.csv
 
-dynamic_test:
-  total_steps: 500
-  sampling_interval_s: 0.05
-  force_timeout_s: 0.2
-  use_timestamp_output: true
-  output_file: data/raw/dynamic_wire_test.csv
+  peak_measure_duration_s: 1.0
+  peak_sampling_interval_s: 0.05
+#-------------------------------------------------------------------------------------
 
+# This block of code looking for the dynamic test settings, 
+# including the velocity, acceleration, run duration, direction, 
+# sampling interval, force timeout, max duration, and output file.
+dynamic_test:
+  velocity_steps_per_s: 667
+  #acceleration_steps_per_s2: 1000
+  #total_steps: 100000
+  run_duration_s: 180.0
+  direction: positive
+
+  sampling_interval_s: 0.1
+  force_timeout_s: 0.3
+
+  max_duration_s: 240.0
+  output_file: data/raw/dynamic_Steelwire_test_30_20.csv
+#-------------------------------------------------------------------------------------
+
+# This block of code looking for the safety parameters, including the maximum step size, 
+# maximum total steps, allowed direction, and whether to perform a dry run.
 safety:
   max_step_size: 100
-  max_total_steps: 1000
+  max_total_steps: 100000
   allowed_direction: both
   dry_run: false
