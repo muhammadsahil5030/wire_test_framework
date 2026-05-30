@@ -172,7 +172,7 @@ The static test performs small Picomotor steps. For each step, it measures:
 Run:
 
 ```powershell
-python run_wire_test.py --test_type static --run
+python run_wire_test.py --test-type static --run
 ```
 
 The output CSV is defined in `config.yaml`:
