@@ -46,41 +46,6 @@ wire_test_framework/
 
 All hardware and test settings are controlled from `config.yaml`.
 
-Example:
-
-```yaml
-force_gauge:
-  port: COM6
-  baudrate: 115200
-  timeout_s: 1.0
-  default_unit: N
-
-picomotor:
-  bridge_exe: external/newfocus/PicomotorBridge.exe
-  axis: 1
-
-static_test:
-  step_size: 10
-  n_steps: 5
-  settle_time_s: 0.5
-  force_timeout_s: 2.0
-  output_file: data/raw/static_wire_test.csv
-
-  peak_measure_duration_s: 1.0
-  peak_sampling_interval_s: 0.05
-
-dynamic_test:
-  velocity_steps_per_s: 667
-  run_duration_s: 30.0
-  direction: positive
-
-  sampling_interval_s: 0.1
-  force_timeout_s: 0.3
-
-  max_duration_s: 120.0
-  output_file: data/raw/dynamic_wire_test.csv
-```
-
 ### Static-test parameters
 
 | Parameter | Meaning |
